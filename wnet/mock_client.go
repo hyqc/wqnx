@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/quic-go/quic-go"
 	"time"
-	"vmi/wiface"
+	"wqnx/wiface"
 )
 
 func MockClient(ip, host string, port int) {
