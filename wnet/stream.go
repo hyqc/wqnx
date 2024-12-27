@@ -12,6 +12,7 @@ type Stream struct {
 	stream   quic.Stream
 	conn     wiface.IConnection
 	isClosed bool
+	exit     chan bool
 }
 
 func NewStream(ctx context.Context, conn wiface.IConnection, stream quic.Stream) *Stream {
@@ -19,6 +20,7 @@ func NewStream(ctx context.Context, conn wiface.IConnection, stream quic.Stream)
 		ctx:    ctx,
 		stream: stream,
 		conn:   conn,
+		exit:   make(chan bool),
 	}
 
 	conn.GetStreamMgr().Add(s)
@@ -45,37 +47,58 @@ func (s *Stream) SendMsg(msgId uint32, data []byte) error {
 	return err
 }
 
-func (s *Stream) Handle() {
-	dp := NewDataPack()
-	headerData := make([]byte, dp.GetHeadLen())
-	if _, err := s.stream.Read(headerData); err != nil {
-		SysPrintError("serve read error: ", err.Error())
+func (s *Stream) Start() {
+	go s.handle()
+	select {
+	case <-s.exit:
+		SysPrintInfo("stream stopped, stream id: ", s.stream.StreamID())
 		return
 	}
+}
 
-	msg, err := dp.Unpack(headerData)
-	if err != nil {
-		SysPrintError("serve unpack error: ", err.Error())
-		return
-	}
-
-	var body = make([]byte, msg.GetDataLen())
-	if msg.GetDataLen() > 0 {
-		if _, err = s.stream.Read(body); err != nil {
+func (s *Stream) handle() {
+	defer s.Stop()
+	for {
+		dp := NewDataPack()
+		headerData := make([]byte, dp.GetHeadLen())
+		if _, err := s.stream.Read(headerData); err != nil {
 			SysPrintError("serve read error: ", err.Error())
 			return
 		}
-	}
-	msg.SetData(body)
 
-	SysPrintInfo(fmt.Sprintf("stream id: %v, msgId: %v, dataLen: %v, data: %v ", s.stream.StreamID(), msg.GetMsgId(), msg.GetDataLen(), string(body)))
-
-	// 找到处理的路由
-	go func() {
-		err := s.SendMsg(msg.GetMsgId(), msg.GetData())
+		msg, err := dp.Unpack(headerData)
 		if err != nil {
-			SysPrintError("send msg error: ", err.Error())
+			SysPrintError("serve unpack error: ", err.Error())
 			return
 		}
-	}()
+
+		var body = make([]byte, msg.GetDataLen())
+		if msg.GetDataLen() > 0 {
+			if _, err = s.stream.Read(body); err != nil {
+				SysPrintError("serve read error: ", err.Error())
+				return
+			}
+		}
+		msg.SetData(body)
+
+		SysPrintInfo(fmt.Sprintf("stream id: %v, msgId: %v, dataLen: %v, data: %v ", s.stream.StreamID(), msg.GetMsgId(), msg.GetDataLen(), string(body)))
+
+		// 找到处理的路由
+		go func() {
+			err := s.SendMsg(msg.GetMsgId(), msg.GetData())
+			if err != nil {
+				SysPrintError("send msg error: ", err.Error())
+				return
+			}
+		}()
+	}
+}
+
+func (s *Stream) Stop() {
+	if s.isClosed {
+		return
+	}
+	s.isClosed = true
+	s.exit <- true
+	s.conn.GetStreamMgr().Remove(s)
 }

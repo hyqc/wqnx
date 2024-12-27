@@ -19,15 +19,16 @@ func MockClient(ip, host string, port int) {
 		panic(err)
 	}
 
-	//defer stream.Close()
+	stream, err := conn.OpenStreamSync(ctx)
+	if err != nil {
+		panic(err)
+	}
+	defer stream.Close()
 	var send = 0
 	go func() {
 		for {
 			send++
-			stream, err := conn.OpenStreamSync(ctx)
-			if err != nil {
-				panic(err)
-			}
+
 			dp := NewDataPack()
 			body, err := dp.Pack(NewMessage(970707, []byte(fmt.Sprintf("你好%v：%v", send, time.Now().Format(time.DateTime)))))
 			if err != nil {
@@ -51,7 +52,10 @@ func MockClient(ip, host string, port int) {
 			}
 		}
 	}()
-
+	select {
+	case <-ctx.Done():
+		break
+	}
 }
 
 func MockClientReceive(stream quic.Stream) (wiface.IMessage, error) {

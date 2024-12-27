@@ -63,7 +63,6 @@ func (c *Connection) Stop() {
 	}
 	c.isClosed = true
 	c.exitStreamChan <- true
-
 	c.server.GetConnMgr().Remove(c)
 }
 
@@ -74,12 +73,12 @@ func (c *Connection) readerStream() {
 		// 接收数据流
 		acceptStream, err := c.conn.AcceptStream(c.ctx)
 		if err != nil {
-			SysPrintError("conn accept stream failed, error: ", err)
+			SysPrintWarn("conn accept stream failed, error: ", err)
 			return
 		}
 		SysPrintInfo(fmt.Sprintf("accept stream remote addr: %s, stream id: %v ", c.conn.RemoteAddr().String(), acceptStream.StreamID()))
 
-		NewStream(c.ctx, c, acceptStream).Handle()
+		NewStream(c.ctx, c, acceptStream).Start()
 	}
 }
 
