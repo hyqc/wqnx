@@ -9,4 +9,5 @@ type IConnection interface {
 	Start()
 	Stop()
 	GetStreamMgr() IStreamMgr
+	GetServer() IServer
 }

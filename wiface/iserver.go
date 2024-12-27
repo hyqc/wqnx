@@ -8,4 +8,6 @@ type IServer interface {
 	Run()                       //运行服务
 	GetConnMgr() IConnectionMgr //获取连接管理
 	GetCtx() context.Context
+	AddRouters(...IRouter) IServer
+	GetRouterMgr() IRouterMgr
 }

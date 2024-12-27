@@ -8,19 +8,21 @@ import (
 )
 
 type Stream struct {
-	ctx      context.Context
-	stream   quic.Stream
-	conn     wiface.IConnection
-	isClosed bool
-	exit     chan bool
+	ctx       context.Context
+	stream    quic.Stream
+	conn      wiface.IConnection
+	isClosed  bool
+	exit      chan bool
+	routerMgr wiface.IRouterMgr
 }
 
 func NewStream(ctx context.Context, conn wiface.IConnection, stream quic.Stream) *Stream {
 	s := &Stream{
-		ctx:    ctx,
-		stream: stream,
-		conn:   conn,
-		exit:   make(chan bool),
+		ctx:       ctx,
+		stream:    stream,
+		conn:      conn,
+		routerMgr: conn.GetServer().GetRouterMgr(),
+		exit:      make(chan bool),
 	}
 
 	conn.GetStreamMgr().Add(s)
@@ -81,16 +83,8 @@ func (s *Stream) handle() {
 		}
 		msg.SetData(body)
 
-		SysPrintInfo(fmt.Sprintf("stream id: %v, msgId: %v, dataLen: %v, data: %v ", s.stream.StreamID(), msg.GetMsgId(), msg.GetDataLen(), string(body)))
-
-		// 找到处理的路由
-		go func() {
-			err := s.SendMsg(msg.GetMsgId(), msg.GetData())
-			if err != nil {
-				SysPrintError("send msg error: ", err.Error())
-				return
-			}
-		}()
+		SysPrintInfo(fmt.Sprintf("stream id: %v, ReqMsgId: %v, dataLen: %v, data: %v ", s.stream.StreamID(), msg.GetMsgId(), msg.GetDataLen(), string(body)))
+		go s.routerMgr.Handle(NewRequest(s, msg))
 	}
 }
 
@@ -101,4 +95,8 @@ func (s *Stream) Stop() {
 	s.isClosed = true
 	s.exit <- true
 	s.conn.GetStreamMgr().Remove(s)
+}
+
+func (s *Stream) GetCtx() context.Context {
+	return s.ctx
 }

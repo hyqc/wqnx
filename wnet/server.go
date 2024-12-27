@@ -15,14 +15,15 @@ const (
 )
 
 type Server struct {
-	Name    string
-	Version string
-	IP      string
-	Host    string
-	Port    int
-	TlsConf *tls.Config
-	Ctx     context.Context
-	connMgr wiface.IConnectionMgr
+	Name      string
+	Version   string
+	IP        string
+	Host      string
+	Port      int
+	TlsConf   *tls.Config
+	Ctx       context.Context
+	connMgr   wiface.IConnectionMgr
+	routerMgr wiface.IRouterMgr
 }
 
 type Options func(opts *Server)
@@ -75,8 +76,9 @@ func NewDefaultServer() *Server {
 		WithTlsConf(generateTLSConfig(ip, host)),
 	}
 	opt := &Server{
-		Ctx:     context.Background(),
-		connMgr: NewConnectionMgr(),
+		Ctx:       context.Background(),
+		connMgr:   NewConnectionMgr(),
+		routerMgr: NewRouterMgr(),
 	}
 	for _, o := range opts {
 		o(opt)
@@ -161,4 +163,18 @@ func (s *Server) GetConnMgr() wiface.IConnectionMgr {
 
 func (s *Server) GetCtx() context.Context {
 	return s.Ctx
+}
+
+func (s *Server) AddRouters(routers ...wiface.IRouter) wiface.IServer {
+	if len(routers) == 0 {
+		return s
+	}
+	for _, router := range routers {
+		s.routerMgr.Add(router)
+	}
+	return s
+}
+
+func (s *Server) GetRouterMgr() wiface.IRouterMgr {
+	return s.routerMgr
 }

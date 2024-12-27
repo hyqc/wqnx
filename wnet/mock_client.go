@@ -45,7 +45,7 @@ func MockClient(ip, host string, port int) {
 				fmt.Println("client receive data error: ", err)
 				goto sleep
 			}
-			fmt.Println(fmt.Sprintf("client receive data,msgId: %v, dataLen: %v, data: %v ", msg.GetMsgId(), msg.GetDataLen(), string(msg.GetData())))
+			fmt.Println(fmt.Sprintf("client receive data,ReqMsgId: %v, dataLen: %v, data: %v ", msg.GetMsgId(), msg.GetDataLen(), string(msg.GetData())))
 		sleep:
 			{
 				time.Sleep(time.Second * 5)

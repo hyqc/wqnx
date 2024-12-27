@@ -85,3 +85,7 @@ func (c *Connection) readerStream() {
 func (c *Connection) GetStreamMgr() wiface.IStreamMgr {
 	return c.streamMgr
 }
+
+func (c *Connection) GetServer() wiface.IServer {
+	return c.server
+}
