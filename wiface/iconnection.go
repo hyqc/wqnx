@@ -8,5 +8,5 @@ type IConnection interface {
 	GetConn() quic.Connection //获取连接
 	Start()
 	Stop()
-	SendMsg(msgId uint32, data []byte) error //发送回包消息
+	GetStreamMgr() IStreamMgr
 }

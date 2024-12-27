@@ -7,6 +7,7 @@ import (
 	"github.com/quic-go/quic-go"
 	"os"
 	"os/signal"
+	"wqnx/wiface"
 )
 
 const (
@@ -21,6 +22,7 @@ type Server struct {
 	Port    int
 	TlsConf *tls.Config
 	Ctx     context.Context
+	connMgr wiface.IConnectionMgr
 }
 
 type Options func(opts *Server)
@@ -73,7 +75,8 @@ func NewDefaultServer() *Server {
 		WithTlsConf(generateTLSConfig(ip, host)),
 	}
 	opt := &Server{
-		Ctx: context.Background(),
+		Ctx:     context.Background(),
+		connMgr: NewConnectionMgr(),
 	}
 	for _, o := range opts {
 		o(opt)
@@ -87,10 +90,6 @@ func NewServer(opts ...Options) *Server {
 		o(opt)
 	}
 	return opt
-}
-
-func (s *Server) getAddress() string {
-	return fmt.Sprintf("%s:%d", s.IP, s.Port)
 }
 
 func (s *Server) Start() {
@@ -111,7 +110,7 @@ func (s *Server) Start() {
 
 		//监听成功
 		SysPrintInfo(fmt.Sprintf("listen tcp success, version: %v, addr: %v", s.Version, addr))
-		connId := uint32(1)
+		connId := NewConnectionID()
 		for {
 			//获取新的连接
 			conn, err := listener.Accept(s.Ctx)
@@ -119,9 +118,15 @@ func (s *Server) Start() {
 				SysPrintError(fmt.Sprintf("accept stream error: %v", err))
 				continue
 			}
-			qconn := NewConnection(s.Ctx, conn, connId)
+			// TODO 连接限制
+			if s.connMgr.Len() >= 100000 {
+				SysPrintError("too many connections")
+				continue
+			}
+			qconn := NewConnection(s.Ctx, s, conn, connId.Get())
+			connId.Inc()
+
 			SysPrintInfo(fmt.Sprintf("accept stream success, connId: %v", connId))
-			connId++
 			// 启动链接
 			go qconn.Start()
 		}
@@ -129,7 +134,8 @@ func (s *Server) Start() {
 }
 
 func (s *Server) Stop() {
-
+	s.GetConnMgr().Clear()
+	SysPrintInfo("server stop")
 }
 
 func (s *Server) Run() {
@@ -143,4 +149,16 @@ func (s *Server) Run() {
 		s.Stop()
 		SysPrintInfo("exit")
 	}
+}
+
+func (s *Server) getAddress() string {
+	return fmt.Sprintf("%s:%d", s.IP, s.Port)
+}
+
+func (s *Server) GetConnMgr() wiface.IConnectionMgr {
+	return s.connMgr
+}
+
+func (s *Server) GetCtx() context.Context {
+	return s.Ctx
 }

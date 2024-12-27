@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/quic-go/quic-go"
+	"wqnx/wiface"
 )
 
 type Connection struct {
@@ -13,16 +14,24 @@ type Connection struct {
 	msgChan        chan []byte     //无缓冲读写消息通道
 	exitStreamChan chan bool       //退出信号
 	isClosed       bool            //通道是否关闭
+	server         wiface.IServer  //链接所属的服务
+	streamMgr      wiface.IStreamMgr
 }
 
-func NewConnection(ctx context.Context, conn quic.Connection, id uint32) *Connection {
-	return &Connection{
+func NewConnection(ctx context.Context, server wiface.IServer, conn quic.Connection, id uint32) *Connection {
+	c := &Connection{
 		ctx:            ctx,
 		conn:           conn,
 		id:             id,
 		exitStreamChan: make(chan bool, 1),
 		msgChan:        make(chan []byte),
+		server:         server,
+		streamMgr:      NewStreamMgr(),
 	}
+
+	server.GetConnMgr().Add(c)
+
+	return c
 }
 
 func (c *Connection) GetId() uint32 {
@@ -49,26 +58,13 @@ func (c *Connection) Start() {
 }
 
 func (c *Connection) Stop() {
-	c.exitStreamChan <- true
-}
-
-// SendMsg 发送回包消息
-func (c *Connection) SendMsg(stream quic.Stream, msgId uint32, data []byte) error {
-	defer func() {
-		_ = stream.Close()
-	}()
 	if c.isClosed {
-		return fmt.Errorf("connection is closed")
+		return
 	}
-	dp := NewDataPack()
-	body, err := dp.Pack(NewMessage(msgId, data))
-	if err != nil {
-		SysPrintError("pack error: ", err.Error())
-		return err
-	}
-	_, err = stream.Write(body)
-	//c.msgChan <- body
-	return err
+	c.isClosed = true
+	c.exitStreamChan <- true
+
+	c.server.GetConnMgr().Remove(c)
 }
 
 func (c *Connection) readerStream() {
@@ -76,46 +72,17 @@ func (c *Connection) readerStream() {
 	defer c.Stop()
 	for {
 		// 接收数据流
-		Print("99999999999999")
-		stream, err := c.conn.AcceptStream(c.ctx)
+		acceptStream, err := c.conn.AcceptStream(c.ctx)
 		if err != nil {
-			Print("100000000000")
 			SysPrintError("conn accept stream failed, error: ", err)
 			return
 		}
-		Print("10000001111111")
-		SysPrintInfo(fmt.Sprintf("accept stream remote addr: %s, stream id: %v ", c.conn.RemoteAddr().String(), stream.StreamID()))
+		SysPrintInfo(fmt.Sprintf("accept stream remote addr: %s, stream id: %v ", c.conn.RemoteAddr().String(), acceptStream.StreamID()))
 
-		dp := NewDataPack()
-		headerData := make([]byte, dp.GetHeadLen())
-		if _, err = stream.Read(headerData); err != nil {
-			SysPrintError("serve read error: ", err.Error())
-			continue
-		}
-		Print(string(headerData), "   ", headerData)
-
-		msg, err := dp.Unpack(headerData)
-		if err != nil {
-			SysPrintError("serve unpack error: ", err.Error())
-			continue
-		}
-		Print(msg.GetDataLen())
-		var body = make([]byte, msg.GetDataLen())
-		if msg.GetDataLen() > 0 {
-			if _, err = stream.Read(body); err != nil {
-				SysPrintError("serve read error: ", err.Error())
-				continue
-			}
-		}
-		msg.SetData(body)
-		SysPrintInfo(fmt.Sprintf("stream id: %v, msgId: %v, dataLen: %v, data: %v ", stream.StreamID(), msg.GetMsgId(), msg.GetDataLen(), string(body)))
-		// 将数据发送到消息队列
-		go func(stream quic.Stream) {
-			err := c.SendMsg(stream, msg.GetMsgId(), msg.GetData())
-			if err != nil {
-				SysPrintError("send msg error: ", err.Error())
-				return
-			}
-		}(stream)
+		NewStream(c.ctx, c, acceptStream).Handle()
 	}
+}
+
+func (c *Connection) GetStreamMgr() wiface.IStreamMgr {
+	return c.streamMgr
 }
