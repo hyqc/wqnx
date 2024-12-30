@@ -35,8 +35,10 @@ func NewUserInfo(reqMsgId, respMsgId uint32) *UserInfo {
 	}
 }
 
-func (u *UserInfo) Handle(request wiface.IRequest) []byte {
-	respBody := []byte(time.Now().Format(time.RFC3339))
+func (u *UserInfo) Handle(request wiface.IRequest, response wiface.IResponse) {
+	data := []byte(time.Now().Format(time.RFC3339))
 	fmt.Println("================ ", time.Now().Format(time.RFC3339))
-	return respBody
+	if err := response.SendMsg(data); err != nil {
+		fmt.Println("send error: ", err)
+	}
 }

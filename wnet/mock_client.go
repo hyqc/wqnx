@@ -30,7 +30,7 @@ func MockClient(ip, host string, port int) {
 			send++
 
 			dp := NewDataPack()
-			body, err := dp.Pack(NewMessage(970707, []byte(fmt.Sprintf("你好%v：%v", send, time.Now().Format(time.DateTime)))))
+			body, err := dp.Pack(NewMessage(1, []byte(fmt.Sprintf("你好%v：%v", send, time.Now().Format(time.DateTime)))))
 			if err != nil {
 				fmt.Println("pack error: ", err)
 				return

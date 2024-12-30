@@ -7,15 +7,15 @@ type BaseRouter struct {
 	RespMsgId uint32
 }
 
-func (b *BaseRouter) Before(request wiface.IRequest) {
+func (b *BaseRouter) Before(request wiface.IRequest, response wiface.IResponse) {
 
 }
 
-func (b *BaseRouter) Handle(request wiface.IRequest) (body []byte) {
-	return make([]byte, 0)
+func (b *BaseRouter) Handle(request wiface.IRequest, response wiface.IResponse) {
+
 }
 
-func (b *BaseRouter) After(request wiface.IRequest) {
+func (b *BaseRouter) After(request wiface.IRequest, response wiface.IResponse) {
 
 }
 

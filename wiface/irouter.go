@@ -1,9 +1,9 @@
 package wiface
 
 type IRouter interface {
-	Before(request IRequest)
-	Handle(request IRequest) (body []byte)
-	After(request IRequest)
+	Before(request IRequest, response IResponse)
+	Handle(request IRequest, response IResponse)
+	After(request IRequest, response IResponse)
 	GetReqMsgId() uint32
 	GetRespMsgId() uint32
 }
