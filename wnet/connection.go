@@ -49,7 +49,9 @@ func (c *Connection) GetConn() quic.Connection {
 func (c *Connection) Start() {
 	SysPrintInfo("connection starting...")
 	go c.readerStream()
-	//go c.writerStream()
+
+	c.GetServer().CallHookAfterConnStart(c)
+
 	select {
 	case <-c.exitStreamChan:
 		SysPrintInfo("connection stopped, connection id: ", c.id)
@@ -61,6 +63,8 @@ func (c *Connection) Stop() {
 	if c.isClosed {
 		return
 	}
+
+	c.GetServer().CallHookBeforeConnStop(c)
 	c.isClosed = true
 	c.exitStreamChan <- true
 	c.server.GetConnMgr().Remove(c)

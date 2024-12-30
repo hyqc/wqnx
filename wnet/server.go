@@ -11,27 +11,53 @@ import (
 	"wqnx/wiface"
 )
 
-const ()
-
 type Server struct {
-	Config    *config.Config
-	TlsConf   *tls.Config
-	Ctx       context.Context
-	connMgr   wiface.IConnectionMgr
-	routerMgr wiface.IRouterMgr
+	config               *config.Config
+	tlsConf              *tls.Config
+	hookAfterConnStart   func(wiface.IConnection)
+	hookBeforeConnStop   func(wiface.IConnection)
+	hookAfterStreamStart func(wiface.IStream)
+	hookBeforeStreamStop func(wiface.IStream)
+	Ctx                  context.Context
+	connMgr              wiface.IConnectionMgr
+	routerMgr            wiface.IRouterMgr
 }
 
 type Options func(opts *Server)
 
 func WithConfig(conf *config.Config) Options {
 	return func(opts *Server) {
-		opts.Config = conf
+		opts.config = conf
 	}
 }
 
 func WithTlsConf(conf *tls.Config) Options {
 	return func(opts *Server) {
-		opts.TlsConf = conf
+		opts.tlsConf = conf
+	}
+}
+
+func WithHookAfterConnStart(hook func(wiface.IConnection)) Options {
+	return func(opts *Server) {
+		opts.hookAfterConnStart = hook
+	}
+}
+
+func WithHookBeforeConnStop(hook func(wiface.IConnection)) Options {
+	return func(opts *Server) {
+		opts.hookBeforeConnStop = hook
+	}
+}
+
+func WithHookAfterStreamStart(hook func(wiface.IStream)) Options {
+	return func(opts *Server) {
+		opts.hookAfterStreamStart = hook
+	}
+}
+
+func WithHookBeforeStreamStop(hook func(wiface.IStream)) Options {
+	return func(opts *Server) {
+		opts.hookBeforeStreamStop = hook
 	}
 }
 
@@ -40,6 +66,18 @@ func NewDefaultServer() *Server {
 	opts := []Options{
 		WithConfig(conf),
 		WithTlsConf(generateTLSConfig(conf.IP, conf.Host)),
+		WithHookAfterConnStart(func(conn wiface.IConnection) {
+			SysPrintInfo("after connection start call...")
+		}),
+		WithHookBeforeConnStop(func(conn wiface.IConnection) {
+			SysPrintInfo("before connection stop call...")
+		}),
+		WithHookAfterStreamStart(func(stream wiface.IStream) {
+			SysPrintInfo("after stream start call...")
+		}),
+		WithHookBeforeStreamStop(func(stream wiface.IStream) {
+			SysPrintInfo("before stream stop call...")
+		}),
 	}
 	opt := &Server{
 		Ctx:       context.Background(),
@@ -61,12 +99,12 @@ func NewServer(opts ...Options) *Server {
 }
 
 func (s *Server) Start() {
-	SysPrintInfo(fmt.Sprintf("start server listener at ip: %s, port: %d", s.Config.IP, s.Config.Port))
-	SysPrintInfo(fmt.Sprintf("server name: %s, address: %s, version: %s ", s.Config.Name, s.getAddress(), s.Config.Version))
+	SysPrintInfo(fmt.Sprintf("start server listener at ip: %s, port: %d", s.config.IP, s.config.Port))
+	SysPrintInfo(fmt.Sprintf("server name: %s, address: %s, version: %s ", s.config.Name, s.getAddress(), s.config.Version))
 
 	go func() {
 		addr := s.getAddress()
-		listener, err := quic.ListenAddr(addr, generateTLSConfig(s.Config.IP, s.Config.Host), &quic.Config{
+		listener, err := quic.ListenAddr(addr, generateTLSConfig(s.config.IP, s.config.Host), &quic.Config{
 			EnableDatagrams: true,
 		})
 		if err != nil {
@@ -77,26 +115,26 @@ func (s *Server) Start() {
 		}()
 
 		//监听成功
-		SysPrintInfo(fmt.Sprintf("listen tcp success, version: %v, addr: %v", s.Config.Version, addr))
+		SysPrintInfo(fmt.Sprintf("listen tcp success, version: %v, addr: %v", s.config.Version, addr))
 		connId := NewConnectionID()
 		for {
 			//获取新的连接
-			conn, err := listener.Accept(s.Ctx)
+			acceptConn, err := listener.Accept(s.Ctx)
 			if err != nil {
 				SysPrintError(fmt.Sprintf("accept stream error: %v", err))
 				continue
 			}
-			// TODO 连接限制
-			if s.connMgr.Len() >= s.Config.MaxConn {
+			// 连接限制
+			if s.connMgr.Len() >= s.config.MaxConn {
 				SysPrintError("too many connections")
 				continue
 			}
-			qconn := NewConnection(s.Ctx, s, conn, connId.Get())
+			conn := NewConnection(s.Ctx, s, acceptConn, connId.Get())
 			connId.Inc()
 
 			SysPrintInfo(fmt.Sprintf("accept stream success, connId: %v", connId))
 			// 启动链接
-			go qconn.Start()
+			go conn.Start()
 		}
 	}()
 }
@@ -120,7 +158,7 @@ func (s *Server) Run() {
 }
 
 func (s *Server) getAddress() string {
-	return fmt.Sprintf("%s:%d", s.Config.IP, s.Config.Port)
+	return fmt.Sprintf("%s:%d", s.config.IP, s.config.Port)
 }
 
 func (s *Server) GetConnMgr() wiface.IConnectionMgr {
@@ -143,4 +181,28 @@ func (s *Server) AddRouters(routers ...wiface.IRouter) wiface.IServer {
 
 func (s *Server) GetRouterMgr() wiface.IRouterMgr {
 	return s.routerMgr
+}
+
+func (s *Server) CallHookAfterConnStart(conn wiface.IConnection) {
+	if s.hookAfterConnStart != nil {
+		s.hookAfterConnStart(conn)
+	}
+}
+
+func (s *Server) CallHookBeforeConnStop(conn wiface.IConnection) {
+	if s.hookBeforeConnStop != nil {
+		s.hookBeforeConnStop(conn)
+	}
+}
+
+func (s *Server) CallHookAfterStreamStart(stream wiface.IStream) {
+	if s.hookAfterStreamStart != nil {
+		s.hookAfterStreamStart(stream)
+	}
+}
+
+func (s *Server) CallHookBeforeStreamStop(stream wiface.IStream) {
+	if s.hookBeforeStreamStop != nil {
+		s.hookAfterStreamStart(stream)
+	}
 }

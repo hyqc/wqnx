@@ -8,7 +8,6 @@ import (
 )
 
 func main() {
-
 	wnet.NewServer().AddRouters(routers...).Run()
 }
 
@@ -32,8 +31,8 @@ func NewUserInfo(reqMsgId, respMsgId uint32) *UserInfo {
 }
 
 func (u *UserInfo) Handle(request wiface.IRequest, response wiface.IResponse) {
-	data := []byte(time.Now().Format(time.RFC3339))
-	fmt.Println("================ ", time.Now().Format(time.RFC3339))
+	data := []byte(fmt.Sprintf("DateTime: %s, Request MsgId: %v, MsgData: %v", time.Now().Format(time.RFC3339),
+		request.GetMsgId(), string(request.GetMsgData())))
 	if err := response.SendMsg(data); err != nil {
 		fmt.Println("send error: ", err)
 	}

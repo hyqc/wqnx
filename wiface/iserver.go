@@ -10,4 +10,8 @@ type IServer interface {
 	GetCtx() context.Context
 	AddRouters(...IRouter) IServer
 	GetRouterMgr() IRouterMgr
+	CallHookAfterConnStart(IConnection)
+	CallHookAfterStreamStart(IStream)
+	CallHookBeforeConnStop(IConnection)
+	CallHookBeforeStreamStop(IStream)
 }

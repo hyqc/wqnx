@@ -51,6 +51,7 @@ func (s *Stream) SendMsg(msgId uint32, data []byte) error {
 
 func (s *Stream) Start() {
 	go s.handle()
+	s.conn.GetServer().CallHookAfterStreamStart(s)
 	select {
 	case <-s.exit:
 		SysPrintInfo("stream stopped, stream id: ", s.stream.StreamID())
@@ -64,20 +65,20 @@ func (s *Stream) handle() {
 		dp := NewDataPack()
 		headerData := make([]byte, dp.GetHeadLen())
 		if _, err := s.stream.Read(headerData); err != nil {
-			SysPrintError("serve read error: ", err.Error())
+			SysPrintWarn("stream read error: ", err.Error())
 			return
 		}
 
 		msg, err := dp.Unpack(headerData)
 		if err != nil {
-			SysPrintError("serve unpack error: ", err.Error())
+			SysPrintError("stream unpack error: ", err.Error())
 			return
 		}
 
 		var body = make([]byte, msg.GetDataLen())
 		if msg.GetDataLen() > 0 {
 			if _, err = s.stream.Read(body); err != nil {
-				SysPrintError("serve read error: ", err.Error())
+				SysPrintError("stream read error: ", err.Error())
 				return
 			}
 		}
@@ -93,6 +94,9 @@ func (s *Stream) Stop() {
 		return
 	}
 	s.isClosed = true
+
+	s.conn.GetServer().CallHookBeforeStreamStop(s)
+
 	s.exit <- true
 	s.conn.GetStreamMgr().Remove(s)
 }

@@ -21,13 +21,13 @@ func (d *DataPack) GetHeadLen() uint32 {
 // Pack 数据包封包
 func (d *DataPack) Pack(msg wiface.IMessage) ([]byte, error) {
 	buff := bytes.NewBuffer([]byte{})
-	if err := binary.Write(buff, binary.LittleEndian, msg.GetMsgId()); err != nil {
+	if err := binary.Write(buff, binary.BigEndian, msg.GetMsgId()); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buff, binary.LittleEndian, msg.GetDataLen()); err != nil {
+	if err := binary.Write(buff, binary.BigEndian, msg.GetDataLen()); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(buff, binary.LittleEndian, msg.GetData()); err != nil {
+	if err := binary.Write(buff, binary.BigEndian, msg.GetData()); err != nil {
 		return nil, err
 	}
 	return buff.Bytes(), nil
@@ -37,13 +37,13 @@ func (d *DataPack) Pack(msg wiface.IMessage) ([]byte, error) {
 func (d *DataPack) Unpack(data []byte) (wiface.IMessage, error) {
 	buffReader := bytes.NewReader(data)
 	msg := NewDefaultMessage()
-	if err := binary.Read(buffReader, binary.LittleEndian, &msg.id); err != nil {
+	if err := binary.Read(buffReader, binary.BigEndian, &msg.id); err != nil {
 		return nil, err
 	}
-	if err := binary.Read(buffReader, binary.LittleEndian, &msg.dataLen); err != nil {
+	if err := binary.Read(buffReader, binary.BigEndian, &msg.dataLen); err != nil {
 		return nil, err
 	}
-	if err := binary.Read(buffReader, binary.LittleEndian, &msg.data); err != nil {
+	if err := binary.Read(buffReader, binary.BigEndian, &msg.data); err != nil {
 		return nil, err
 	}
 	return msg, nil
