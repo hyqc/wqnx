@@ -23,6 +23,11 @@ func (r *RouterMgr) Add(i wiface.IRouter) {
 }
 
 func (r *RouterMgr) Handle(request wiface.IRequest) {
+	defer func() {
+		if err := recover(); err != nil {
+			SysPrintError(fmt.Sprintf("router handle error:%v; msgId:%v", err, request.GetMsgId()))
+		}
+	}()
 	if call, ok := r.routers[request.GetMsgId()]; ok {
 		response := NewResponse(request.GetStream(), call)
 		call.Before(request, response)

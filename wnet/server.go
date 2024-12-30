@@ -7,19 +7,14 @@ import (
 	"github.com/quic-go/quic-go"
 	"os"
 	"os/signal"
+	"wqnx/config"
 	"wqnx/wiface"
 )
 
-const (
-	version = "1.0.0"
-)
+const ()
 
 type Server struct {
-	Name      string
-	Version   string
-	IP        string
-	Host      string
-	Port      int
+	Config    *config.Config
 	TlsConf   *tls.Config
 	Ctx       context.Context
 	connMgr   wiface.IConnectionMgr
@@ -28,33 +23,9 @@ type Server struct {
 
 type Options func(opts *Server)
 
-func WithIP(ip string) Options {
+func WithConfig(conf *config.Config) Options {
 	return func(opts *Server) {
-		opts.IP = ip
-	}
-}
-
-func WithHost(host string) Options {
-	return func(opts *Server) {
-		opts.Host = host
-	}
-}
-
-func WithPort(port int) Options {
-	return func(opts *Server) {
-		opts.Port = port
-	}
-}
-
-func WithName(name string) Options {
-	return func(opts *Server) {
-		opts.Name = name
-	}
-}
-
-func WithVersion(version string) Options {
-	return func(opts *Server) {
-		opts.Version = version
+		opts.Config = conf
 	}
 }
 
@@ -65,15 +36,10 @@ func WithTlsConf(conf *tls.Config) Options {
 }
 
 func NewDefaultServer() *Server {
-	ip := "127.0.0.1"
-	host := "localhost"
+	conf := config.NewDefault()
 	opts := []Options{
-		WithName("wqx"),
-		WithVersion(version),
-		WithPort(6666),
-		WithIP(ip),
-		WithHost(host),
-		WithTlsConf(generateTLSConfig(ip, host)),
+		WithConfig(conf),
+		WithTlsConf(generateTLSConfig(conf.IP, conf.Host)),
 	}
 	opt := &Server{
 		Ctx:       context.Background(),
@@ -95,12 +61,12 @@ func NewServer(opts ...Options) *Server {
 }
 
 func (s *Server) Start() {
-	SysPrintInfo(fmt.Sprintf("start server listener at ip: %s, port: %d", s.IP, s.Port))
-	SysPrintInfo(fmt.Sprintf("server name: %s, address: %s, version: %s ", s.Name, s.getAddress(), s.Version))
+	SysPrintInfo(fmt.Sprintf("start server listener at ip: %s, port: %d", s.Config.IP, s.Config.Port))
+	SysPrintInfo(fmt.Sprintf("server name: %s, address: %s, version: %s ", s.Config.Name, s.getAddress(), s.Config.Version))
 
 	go func() {
 		addr := s.getAddress()
-		listener, err := quic.ListenAddr(addr, generateTLSConfig(s.IP, s.Host), &quic.Config{
+		listener, err := quic.ListenAddr(addr, generateTLSConfig(s.Config.IP, s.Config.Host), &quic.Config{
 			EnableDatagrams: true,
 		})
 		if err != nil {
@@ -111,7 +77,7 @@ func (s *Server) Start() {
 		}()
 
 		//监听成功
-		SysPrintInfo(fmt.Sprintf("listen tcp success, version: %v, addr: %v", s.Version, addr))
+		SysPrintInfo(fmt.Sprintf("listen tcp success, version: %v, addr: %v", s.Config.Version, addr))
 		connId := NewConnectionID()
 		for {
 			//获取新的连接
@@ -121,7 +87,7 @@ func (s *Server) Start() {
 				continue
 			}
 			// TODO 连接限制
-			if s.connMgr.Len() >= 100000 {
+			if s.connMgr.Len() >= s.Config.MaxConn {
 				SysPrintError("too many connections")
 				continue
 			}
@@ -154,7 +120,7 @@ func (s *Server) Run() {
 }
 
 func (s *Server) getAddress() string {
-	return fmt.Sprintf("%s:%d", s.IP, s.Port)
+	return fmt.Sprintf("%s:%d", s.Config.IP, s.Config.Port)
 }
 
 func (s *Server) GetConnMgr() wiface.IConnectionMgr {

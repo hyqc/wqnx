@@ -9,11 +9,7 @@ import (
 
 func main() {
 
-	wnet.NewServer(
-		wnet.WithIP("127.0.0.1"),
-		wnet.WithPort(6666),
-		wnet.WithHost("localhost"),
-	).AddRouters(routers...).Run()
+	wnet.NewServer().AddRouters(routers...).Run()
 }
 
 var (
