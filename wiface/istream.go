@@ -11,4 +11,7 @@ type IStream interface {
 	Start()
 	Stop()
 	GetCtx() context.Context
+	SetAttr(string, interface{})
+	GetAttr(string) (interface{}, bool)
+	RemoveAttr(string)
 }

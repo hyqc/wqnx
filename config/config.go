@@ -12,6 +12,7 @@ const (
 	defaultPort              = 6666
 	defaultMaxPacketSize     = 4096
 	defaultMaxConn           = 10000
+	defaultMaxWorkerPoolSize = 10
 	defaultMaxWorkerTaskLen  = 10000
 	defaultMaxMsgChanBuffLen = 10000
 )
@@ -110,7 +111,7 @@ func defaultOptions() []Options {
 		WithVersion(version),
 		WithMaxPacketSize(defaultMaxPacketSize),
 		WithMaxConn(defaultMaxConn),
-		WithWorkerPoolSize(defaultMaxWorkerTaskLen),
+		WithWorkerPoolSize(defaultMaxWorkerPoolSize),
 		WithMaxWorkerTaskLen(defaultMaxWorkerTaskLen),
 		WithMaxMsgChanBuffLen(defaultMaxMsgChanBuffLen),
 	}

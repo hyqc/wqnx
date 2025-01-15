@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/quic-go/quic-go"
+	"sync"
 	"wqnx/wiface"
 )
 
@@ -14,6 +15,7 @@ type Stream struct {
 	isClosed  bool
 	exit      chan bool
 	routerMgr wiface.IRouterMgr
+	attr      *sync.Map
 }
 
 func NewStream(ctx context.Context, conn wiface.IConnection, stream quic.Stream) *Stream {
@@ -21,8 +23,10 @@ func NewStream(ctx context.Context, conn wiface.IConnection, stream quic.Stream)
 		ctx:       ctx,
 		stream:    stream,
 		conn:      conn,
-		routerMgr: conn.GetServer().GetRouterMgr(),
+		isClosed:  false,
 		exit:      make(chan bool),
+		routerMgr: conn.GetServer().GetRouterMgr(),
+		attr:      &sync.Map{},
 	}
 
 	conn.GetStreamMgr().Add(s)
@@ -103,4 +107,16 @@ func (s *Stream) Stop() {
 
 func (s *Stream) GetCtx() context.Context {
 	return s.ctx
+}
+
+func (s *Stream) GetAttr(field string) (interface{}, bool) {
+	return s.attr.Load(field)
+}
+
+func (s *Stream) SetAttr(field string, value interface{}) {
+	s.attr.Store(field, value)
+}
+
+func (s *Stream) RemoveAttr(field string) {
+	s.attr.Delete(field)
 }
