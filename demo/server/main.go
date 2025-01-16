@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"time"
-	"wqnx/wiface"
-	"wqnx/wnet"
+	"wqnx/src/wiface"
+	"wqnx/src/wnet"
 )
 
 func main() {
@@ -18,15 +18,12 @@ var (
 )
 
 type UserInfo struct {
-	*wnet.BaseRouter
+	wiface.IRouter
 }
 
 func NewUserInfo(reqMsgId, respMsgId uint32) *UserInfo {
 	return &UserInfo{
-		&wnet.BaseRouter{
-			ReqMsgId:  reqMsgId,
-			RespMsgId: respMsgId,
-		},
+		wnet.NewBaseRouter(reqMsgId, respMsgId),
 	}
 }
 

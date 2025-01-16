@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"wqnx/wnet"
+	"wqnx/src/wnet"
 )
 
 func main() {
