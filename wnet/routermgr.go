@@ -2,7 +2,7 @@ package wnet
 
 import (
 	"fmt"
-	"wqnx/src/wiface"
+	"wqnx/wiface"
 )
 
 type RouterMgr struct {

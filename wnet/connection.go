@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/quic-go/quic-go"
-	"wqnx/src/wiface"
+	"wqnx/wiface"
 )
 
 // Connection 连接

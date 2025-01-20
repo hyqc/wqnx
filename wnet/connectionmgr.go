@@ -2,7 +2,7 @@ package wnet
 
 import (
 	"sync"
-	"wqnx/src/wiface"
+	"wqnx/wiface"
 )
 
 // ConnectionMgr Connection的管理模块

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/quic-go/quic-go"
 	"sync"
-	"wqnx/src/wiface"
+	"wqnx/wiface"
 )
 
 type Stream struct {

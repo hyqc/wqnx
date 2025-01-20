@@ -7,8 +7,8 @@ import (
 	"github.com/quic-go/quic-go"
 	"os"
 	"os/signal"
-	"wqnx/src/config"
-	"wqnx/src/wiface"
+	"wqnx/config"
+	"wqnx/wiface"
 )
 
 type Server struct {

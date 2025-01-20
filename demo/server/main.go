@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"time"
-	"wqnx/src/wiface"
-	"wqnx/src/wnet"
+	"wqnx/wiface"
+	"wqnx/wnet"
 )
 
 func main() {

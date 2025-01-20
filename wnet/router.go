@@ -1,6 +1,6 @@
 package wnet
 
-import "wqnx/src/wiface"
+import "wqnx/wiface"
 
 type BaseRouter struct {
 	reqMsgId  uint32

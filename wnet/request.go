@@ -1,7 +1,7 @@
 package wnet
 
 import (
-	"wqnx/src/wiface"
+	"wqnx/wiface"
 )
 
 type Request struct {

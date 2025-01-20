@@ -3,7 +3,7 @@ package wnet
 import (
 	"bytes"
 	"encoding/binary"
-	"wqnx/src/wiface"
+	"wqnx/wiface"
 )
 
 type DataPack struct {

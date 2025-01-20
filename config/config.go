@@ -1,7 +1,7 @@
 package config
 
 import (
-	"wqnx/src/wiface"
+	"wqnx/wiface"
 )
 
 const (

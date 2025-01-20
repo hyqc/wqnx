@@ -3,7 +3,7 @@ package wnet
 import (
 	"github.com/quic-go/quic-go"
 	"sync"
-	"wqnx/src/wiface"
+	"wqnx/wiface"
 )
 
 type StreamMgr struct {
